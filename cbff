@@ -1,0 +1,219 @@
+#!/bin/bash
+
+help () {
+cat <<EOF
+
+### CBFF Docker
+
+Commandos disponibles:
+
+up            Inicia el contenedor y configura variables
+start         Prende el contenedor
+stop          Apaga el contenedor
+destroy       Elimina el contenedor
+ssh           Acceso dentro del contenedor
+db            Conecta a la base de datos (debe ingresar: --username=user --password=password)
+status        Verifica el estado del contenedor
+port          Muestra los puertos asignados a cada servicio
+bastion       access to bastion by ssh
+
+dev           Acceso al entorno Dev con variable AWS seteada
+uat           Acceso al entorno Uat con variable AWS seteada
+pro           Acceso al entorno Pro con variable AWS seteada
+sandbox       Acceso al entorno sandbox con variable AWS seteada
+
+tunnel        Genera el Tunnel al Bastion
+login         Accede a aws (precondicion: tener actualizado el archivo .aws/credentials)         
+compile       Ejecuta el mvn con quarkus:dev
+open          abre la carpeta del proyecto Localenv en vscode
+
+EOF
+}
+
+main () {
+    # PROJECTPATH contains the full
+    # directory path of the project itself
+    PROJECTPATH=$(pwd)
+    PROJECT_NAME=$(basename $PROJECTPATH)
+    DOCKER_CMD="docker"
+    AWS_DEFAULT_REGION="us-east-1"
+    sandbox="092494271509_AWSAdministratorAccess"
+    dev="597844716329_SWITCH_AWS_TEC_DVP_ADM"
+    uat="769771297716_SWITCH_AWS_TEC_DVP_ADM"
+    pro="460778366628_SWITCH_AWS_TEC_DVP_ADM"
+
+    case "$(uname -s)" in
+        MINGW64_NT*)
+            export MSYS_NO_PATHCONV=1
+            DOCKER_CMD="winpty docker"
+            PROJECTPATH="/$PROJECTPATH"
+        ;;
+        Linux*)
+            PROJECTPATH=$PROJECTPATH
+        ;;
+        Darwin*)
+            PROJECTPATH=$PROJECTPATH
+        ;;
+        *)
+            echo "El Script es compatible son los sistemas Operativos: Linux, MacOs, Windows (con consola de git Bash)"
+        ;;
+    esac
+
+    case "$1" in
+        sandbox|dev|uat|pro)        
+        docker run --rm -ti --hostname $PROJECT_NAME -w /data \
+            -e AWS_PROFILE="${!1}" \
+            -p 5005 \
+            -p 8080 \
+            -v $HOME/Localenv/.aws/:/root/.aws/ \
+            -v $HOME/Localenv/.kube/:/root/.kube \
+            -v $HOME/Localenv/.m2/:/root/.m2 \
+            -v $HOME/Localenv/:/Localenv \
+            -v $HOME/Localenv/etc/hosts/:/etc/hosts \
+            -v $PROJECTPATH:/data yosoyfunes/cbff-local            
+        ;;
+
+        pwd)
+        echo $PROJECTPATH
+        echo $PROJECT_NAME
+        echo $HOME
+        ;;
+
+        up)
+        [[ ! -z "$2" ]] && AWS_PROFILE="${!2}" || AWS_PROFILE=${sandbox}
+        docker run -ti --hostname $PROJECT_NAME -w /data \
+            --detach \
+            --name $PROJECT_NAME \
+            --privileged \
+            -e AWS_PROFILE=$AWS_PROFILE \
+            -p 5005 \
+            -p 8080 \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v $HOME/Localenv/.aws/:/root/.aws/ \
+            -v $HOME/Localenv/.kube/:/root/.kube \
+            -v $HOME/Localenv/.m2/:/root/.m2 \
+            -v $HOME/Localenv/:/Localenv \
+            -v $HOME/Localenv/etc/hosts/:/etc/hosts \
+            -v $PROJECTPATH:/data yosoyfunes/cbff-local
+        ;;
+
+        start)
+        $DOCKER_CMD start $PROJECT_NAME
+        ;;
+
+        stop)
+        $DOCKER_CMD stop $PROJECT_NAME
+        ;;
+
+        destroy)
+        $DOCKER_CMD stop $PROJECT_NAME
+        $DOCKER_CMD rm --force $PROJECT_NAME
+        ;;
+
+        ssh)
+        $DOCKER_CMD exec -ti $PROJECT_NAME bash
+        ;;
+
+        db)
+        if [[ ! -f "$HOME/secret/rds-combined-ca-bundle.pem" ]] ; then
+            echo "El archivo rds-combined-ca-bundle.pem no existe dentro de la carpeta $HOME/Localenv/secret" 
+            exit 1;
+        else
+            for i in "$@"
+            do
+                case $i in
+                    --username=*)
+                        DB_USERNAME="${i#*=}"
+                        shift # past argument=value
+                    ;;
+                    --password=*)
+                        DB_PASSWORD="${i#*=}"
+                        shift # past argument=value
+                    ;;
+                esac;
+            done;
+
+            if [[ -z $DB_USERNAME ]] || [[ -z $DB_PASSWORD ]]; then   
+                echo "Debe ingresar --username=<usuario> y --password=<contraseña>"
+                exit 1;
+            fi
+
+            $DOCKER_CMD exec -ti $PROJECT_NAME bash -c "\
+            cp /Localenv/secret/rds-combined-ca-bundle.pem /home/ \
+            && chmod 600 /home/rds-combined-ca-bundle.pem \
+            && mongo --sslAllowInvalidHostnames --ssl --sslCAFile /home/rds-combined-ca-bundle.pem --username $DB_USERNAME --password $DB_PASSWORD
+            "
+        fi;
+        ;;        
+
+        status)
+        $DOCKER_CMD ps --filter name=$PROJECT_NAME
+        ;;
+
+        port)
+        CBFF_PORT_8080=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "8080/tcp") 0).HostPort}}' $(docker ps --quiet --filter name=$PROJECT_NAME))
+        CBFF_PORT_5005=$(docker inspect --format='{{(index (index .NetworkSettings.Ports "5005/tcp") 0).HostPort}}' $(docker ps --quiet --filter name=$PROJECT_NAME))
+        echo "El puerto 8080 asignado a tu maquina es: http://localhost:${CBFF_PORT_8080}"
+        echo "El puerto 5005 asignado a tu maquina es: http://localhost:${CBFF_PORT_5005}"
+        ;;
+
+        tunnel)
+        if [[ ! -f "$HOME/Localenv/secret/cbff_key_name" ]] ; then
+            echo "El archivo cbff_key_name no existe dentro de la carpeta $HOME/Localenv/secret" 
+            exit 1;
+        else
+            $DOCKER_CMD exec -ti $PROJECT_NAME bash -c '\
+            cp /Localenv/secret/cbff_key_name /home/ \
+            && chmod 600 /home/cbff_key_name \
+            && echo "Para salir del tunnel Ctrl + C" \
+            && ssh -i "/home/cbff_key_name" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
+             -L 27017:docdb.cluster.us-east-1.docdb.amazonaws.com:27017 \             
+             -L 6379:clustercfg.elasticache-cluster.xyz.use1.cache.amazonaws.com:6379 \
+             ubuntu@1.2.3.4 -N 2>/dev/null
+            '
+        fi;
+        ;;
+
+        login)
+        $DOCKER_CMD exec -ti $PROJECT_NAME bash -c '\
+        export CODEARTIFACT_AUTH_TOKEN=`aws codeartifact get-authorization-token --domain cbff-artifact --domain-owner 092494271509 --query authorizationToken --output text` \
+        && sed -i "s/<password>.*<\/password>/<password>$CODEARTIFACT_AUTH_TOKEN<\/password>/g" ~/.m2/settings.xml \
+        && aws eks --region us-east-1 update-kubeconfig --name teco-dev-bffecomm-cluster --alias dev/teco-dev-bffecomm-cluster
+        '
+        ;;
+
+        k8s_login)
+        echo "setee el cluster correspondiente"
+        echo "aws eks --region us-east-1 update-kubeconfig --name teco-dev-bffecomm-cluster --alias dev/teco-dev-bffecomm-cluster"
+        echo "aws eks --region us-east-1 update-kubeconfig --name teco-uat-bffecomm-cluster --alias uat/teco-dev-bffecomm-cluster"
+        echo "aws eks --region us-east-1 update-kubeconfig --name teco-pro-bffecomm-cluster --alias pro/teco-dev-bffecomm-cluster"
+        ;;
+
+        bastion)
+        ssh -i "$HOME/Localenv/secret/cbff_key_name" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ubuntu@1.2.3.4
+        ;;
+
+        open)
+        cd ~/Localenv && code .
+        ;;
+
+        compile)
+        echo -n trustStorePassword:
+        read -s password
+        $DOCKER_CMD exec -ti $PROJECT_NAME bash -c "/data/mvnw clean compile quarkus:dev '-Djavax.net.ssl.trustStore=/data/src/main/jib/cbff-truststore.jks' '-Djavax.net.ssl.trustStorePassword=$password'"
+        ;;
+
+        -h|--help)
+        help
+        ;;
+
+        *)
+        help
+        ;;
+
+    esac
+
+    exit 0
+}
+
+main $*

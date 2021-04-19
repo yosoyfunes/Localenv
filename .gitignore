@@ -1,0 +1,6 @@
+.DS_Store
+.kube/*
+.m2/*
+.aws/*
+secret/*
+etc/*
