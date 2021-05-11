@@ -60,7 +60,7 @@ main () {
     esac
 
     case "$1" in
-        sandbox|dev|uat|pro)        
+        sandbox|dev|uat|pro)
         docker run --rm -ti --hostname $PROJECT_NAME -w /data \
             -e AWS_PROFILE="${!1}" \
             -p 5005 \
@@ -70,7 +70,7 @@ main () {
             -v $HOME/Localenv/.m2/:/root/.m2 \
             -v $HOME/Localenv/:/Localenv \
             -v $HOME/Localenv/etc/hosts/:/etc/hosts \
-            -v $PROJECTPATH:/data yosoyfunes/cbff-local            
+            -v $PROJECTPATH:/data yosoyfunes/cbff-local
         ;;
 
         pwd)
@@ -133,7 +133,7 @@ main () {
                 esac;
             done;
 
-            if [[ -z $DB_USERNAME ]] || [[ -z $DB_PASSWORD ]]; then   
+            if [[ -z $DB_USERNAME ]] || [[ -z $DB_PASSWORD ]]; then
                 echo "Debe ingresar --username=<usuario> y --password=<contraseña>"
                 exit 1;
             fi
@@ -144,7 +144,7 @@ main () {
             && mongo --sslAllowInvalidHostnames --ssl --sslCAFile /home/rds-combined-ca-bundle.pem --username $DB_USERNAME --password $DB_PASSWORD
             "
         fi;
-        ;;        
+        ;;
 
         status)
         $DOCKER_CMD ps --filter name=$PROJECT_NAME
@@ -159,7 +159,7 @@ main () {
 
         tunnel)
         if [[ ! -f "$HOME/Localenv/secret/cbff_key_name" ]] ; then
-            echo "El archivo cbff_key_name no existe dentro de la carpeta $HOME/Localenv/secret" 
+            echo "El archivo cbff_key_name no existe dentro de la carpeta $HOME/Localenv/secret"
             exit 1;
         else
             $DOCKER_CMD exec -ti $PROJECT_NAME bash -c '\
@@ -167,7 +167,7 @@ main () {
             && chmod 600 /home/cbff_key_name \
             && echo "Para salir del tunnel Ctrl + C" \
             && ssh -i "/home/cbff_key_name" -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null \
-             -L 27017:docdb.cluster.us-east-1.docdb.amazonaws.com:27017 \             
+             -L 27017:docdb.cluster.us-east-1.docdb.amazonaws.com:27017 \
              -L 6379:clustercfg.elasticache-cluster.xyz.use1.cache.amazonaws.com:6379 \
              ubuntu@1.2.3.4 -N 2>/dev/null
             '

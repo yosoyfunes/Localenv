@@ -10,7 +10,7 @@ docker run --rm -ti -w /data -e AWS_PROFILE=default -v ~/.aws:/root/.aws/ -v ${P
 
 Para un entorno inmutable se usa una Imagen Docker con los tools necesarios para operar:
 - Linux/4.15.0-58-generic
-- aws-cli/1.18.168 
+- aws-cli/1.18.168
 - Python/2.7.17 & Python/3.7.5
 - botocore/1.19.8
 - terrafom 0.13.0
@@ -18,7 +18,7 @@ Para un entorno inmutable se usa una Imagen Docker con los tools necesarios para
 - Helm3
 - Stern (for Logs Kubernetes)
 - Apache Maven 3.6.3
-- openjdk version "11.0.9.1" 
+- openjdk version "11.0.9.1"
 - TruffleHog
 
 Se toman los puertos del Host para dar servicio:
@@ -81,7 +81,7 @@ setx /M path "%path%;$HOME\Localenv"
 |**./cbff dev**  |    Acceso al entorno Dev con variable AWS seteada |
 |**./cbff sandbox**  |    Acceso al entorno sandbox con variable AWS seteada |
 |**./cbff tunnel**  |    Genera el Tunnel al Bastion |
-|**./cbff login**  |    Accede a aws (precondicion: tener actualizado el archivo . |aws/credentials)         
+|**./cbff login**  |    Accede a aws (precondicion: tener actualizado el archivo . |aws/credentials)
 |**./cbff compile**  |    Ejecuta el mvn con quarkus:dev |
 
 ## Para poder acceder al Cluster de EKS se debe correr:

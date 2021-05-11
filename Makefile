@@ -15,7 +15,7 @@ MK_BIN ?= docker
 all:
 	@echo "example: ENV='env-tets' make build TARGET='--no-cache' its the same that: docker build --no-cache -e env-test"
 
-push:	
+push:
 	@echo "push image to registry"
 	$(MK_BIN) push yosoyfunes/cbff-local $(MK_ARGS)
 
