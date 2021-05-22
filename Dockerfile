@@ -141,6 +141,20 @@ RUN echo 'source <(kubectl completion bash)' >>~/.zshrc \
     && echo 'complete -F __start_kubectl k' >>~/.zshrc \
     && echo 'source /usr/share/bash-completion/bash_completion' >>~/.zshrc
 
+# Install k9s (monitoring)
+RUN cd /tmp \
+    && wget https://github.com/derailed/k9s/releases/download/v0.24.9/k9s_Linux_x86_64.tar.gz \
+    && tar -xzvf k9s_Linux_x86_64.tar.gz \
+    && chmod +x k9s \
+    && mv k9s /usr/local/bin/
+
+# Install Hey https://github.com/rakyll/hey
+RUN cd /tmp \
+    && wget https://hey-release.s3.us-east-2.amazonaws.com/hey_linux_amd64 \
+    && chmod +x hey_linux_amd64 \
+    && mv hey_linux_amd64 hey \
+    && mv hey /usr/local/bin/
+
 COPY .bash_aliases /root/.bash_aliases
 
 # Define working directory.
