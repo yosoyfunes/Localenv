@@ -3,7 +3,12 @@
 ## Getting started
 
 ```bash
-docker run --rm -ti -w /data -e AWS_PROFILE=default -v ~/.aws:/root/.aws/ -v ${PWD}:/data yosoyfunes/cbff-local
+docker run --rm -ti --hostname ${PWD} -w /data \
+    -e AWS_PROFILE=default \
+    -v $HOME/Localenv/.aws/:/root/.aws/ \
+    -v $HOME/Localenv/.kube/:/root/.kube \
+    -v $HOME/Localenv/:/Localenv \
+    -v ${PWD}:/data yosoyfunes/cbff-local
 ```
 
 **En este repo se tiene plasmado la mayoria de la infra necesaria para trabajar con un Cluster de EKS y los demas recursos necesarios**
@@ -16,6 +21,8 @@ Para un entorno inmutable se usa una Imagen Docker con los tools necesarios para
 - terrafom 0.13.0
 - kubectl ~> 1.19
 - Helm3
+- k9s
+- Hey (for stress test from local)
 - Stern (for Logs Kubernetes)
 - Apache Maven 3.6.3
 - openjdk version "11.0.9.1"
