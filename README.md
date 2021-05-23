@@ -3,7 +3,7 @@
 ## Getting started
 
 ```bash
-docker run --rm -ti --hostname ${PWD} -w /data \
+docker run --rm -ti --hostname $(basename ${PWD}) -w /data \
     -e AWS_PROFILE=default \
     -v $HOME/Localenv/.aws/:/root/.aws/ \
     -v $HOME/Localenv/.kube/:/root/.kube \
