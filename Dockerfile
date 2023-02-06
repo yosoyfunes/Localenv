@@ -40,12 +40,6 @@ RUN python3 -m pip install aws-shell \
 # Install TruffleHog
 RUN python3 -m pip install truffleHog3
 
-# Install Terraform 0.13.2
-RUN cd /tmp \
-    && wget -q https://releases.hashicorp.com/terraform/${TERRAFORM_VERSION}/terraform_${TERRAFORM_VERSION}_linux_amd64.zip \
-    && unzip ./terraform_${TERRAFORM_VERSION}_linux_amd64.zip -d /usr/local/bin/ \
-    && rm ./terraform_${TERRAFORM_VERSION}_linux_amd64.zip
-
 # Install kubectl
 # last version
 # $(curl -s https://storage.googleapis.com/kubernetes-release/release/stable.txt)
@@ -99,10 +93,9 @@ RUN curl -fsSL -o get_helm.sh https://raw.githubusercontent.com/helm/helm/master
     && rm ./get_helm.sh
 
 # Install Stern
-RUN wget https://github.com/wercker/stern/releases/download/1.11.0/stern_linux_amd64 \
-    && chmod +x stern_linux_amd64 \
-    && mv stern_linux_amd64 stern \
-    && mv stern /usr/local/bin/
+RUN wget https://github.com/stern/stern/releases/download/v1.22.0/stern_1.22.0_linux_amd64.tar.gz \
+    && tar -C /usr/local/bin -xzf stern_1.22.0_linux_amd64.tar.gz \
+    && chmod +x /usr/local/bin/stern
 
 # Install istio
 RUN cd /tmp \
@@ -156,6 +149,24 @@ RUN cd /tmp \
     && mv hey /usr/local/bin/
 
 COPY .bash_aliases /root/.bash_aliases
+
+# Install Azure Cli
+RUN cd /tmp \
+    && curl -sL https://aka.ms/InstallAzureCLIDeb | bash
+
+# Install Terragrunt
+RUN cd /tmp \
+    && wget https://github.com/gruntwork-io/terragrunt/releases/download/v0.38.12/terragrunt_linux_amd64 \
+    && chmod +x terragrunt_linux_amd64 \
+    && mv terragrunt_linux_amd64 terragrunt \
+    && mv terragrunt /usr/local/bin/
+
+# Install tfenv and terraform v1.3.0
+RUN git clone --depth=1 https://github.com/tfutils/tfenv.git ~/.tfenv \
+    && rm -rf /usr/local/bin/terraform \
+    && ln -s ~/.tfenv/bin/* /usr/local/bin \
+    && tfenv install 1.3.0 \
+    && tfenv use 1.3.0
 
 # Define working directory.
 WORKDIR /data
